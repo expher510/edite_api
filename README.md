@@ -1,67 +1,70 @@
-# 🎬 Cliber - Video Clipping API
+---
+title: Video Processing API
+emoji: 🎬
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
 
-A powerful, high-performance FastAPI service designed to slice, dice, and format videos programmatically. Built with **FastAPI** and **MoviePy**, Cliber allows you to extract specific clips from a video and automatically format them for various platforms (YouTube Shorts, Instagram Reels, Cinema, etc.).
+# Video Processing API
 
-## ✨ Features
+A FastAPI-based video processing service that provides video clipping and audio extraction capabilities.
 
-- **🚀 High Performance**: Built on FastAPI for speed and easy integration.
-- **✂️ Smart Clipping**: Extract multiple clips in a single request using precise timestamps.
-- **🎨 Auto-Formatting**: Intelligent cropping and resizing engine that supports:
-  - `Shorts (9:16)` - Perfect for TikTok/Reels.
-  - `Video (16:9)` - Standard HD format.
-  - `Square (1:1)` - Ideal for Instagram posts.
-  - `Cinema (21:9)` - Ultra-wide cinematic look.
-  - `Film (2.35:1)` - Classic anamorphic format (Default).
-- **🛡️ Windows Ready**: Robust file handling logic designed to work flawlessly on Windows without file locking issues.
-- **🐳 Docker Ready**: Comes with standard `requirements.txt` for easy containerization.
+## Features
 
-## 🛠️ Installation
+- **Video Clipping**: Extract specific segments from videos
+- **Audio Extraction**: Extract audio tracks from video files
+- **Multiple Format Support**: Support for various video and audio formats
+- **RESTful API**: Easy-to-use HTTP endpoints
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/cliber.git
-   cd cliber
-   ```
+## API Endpoints
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Video Clipping
+```
+POST /video/clip
+```
+Clip a video segment between start and end times.
 
-3. **Run the server:**
-   ```bash
-   python main.py
-   ```
-   The API will start at `http://localhost:8000`.
+### Audio Extraction
+```
+POST /video/extract-audio
+```
+Extract audio from video files.
 
-## 📖 Usage
+### File Upload
+```
+POST /files/upload
+```
+Upload video files for processing.
 
-### Swager UI
-Explore the API interactively at:
-`http://localhost:8000/docs`
+## Usage
 
-### Example Request (Python)
-```python
-import requests
+1. Upload your video file using the `/files/upload` endpoint
+2. Use the returned file path to process the video
+3. Download the processed result
 
-url = "http://localhost:8000/process"
-files = {'video': open('my_video.mp4', 'rb')}
-data = {
-    'format': 'Shorts (9:16)',
-    'timestamps': '[{"start_time": 10, "end_time": 20}, {"start_time": 45, "end_time": 50}]'
-}
+## Supported Formats
 
-response = requests.post(url, files=files, data=data)
-print(response.json())
+- **Video**: MP4, AVI, MOV, WebM
+- **Audio**: MP3, WAV, AAC
+
+## Technical Details
+
+Built with:
+- FastAPI for the web framework
+- MoviePy for video processing
+- FFmpeg for media handling
+- Docker for containerization
+
+## Local Development
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+python main.py
 ```
 
-## 🏗️ Project Structure
-
-- `main.py`: The FastAPI application entry point.
-- `video_processor.py`: Core logic for video manipulation using MoviePy.
-- `ffmpeg_init.py`: Global FFmpeg initialization module for stability.
-- `schemas.py`: Pydantic models for data validation.
-
-## 📝 License
-
-MIT License - feel free to use this in your own projects!
+The API will be available at `http://localhost:8000`
