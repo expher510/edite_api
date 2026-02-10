@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-moviepy
-python-multipart
-yt-dlp
-pydantic
-imageio-ffmpeg
