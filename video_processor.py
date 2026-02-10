@@ -19,6 +19,13 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
     }
 
     try:
+        # Load background music if provided
+        bg_music = None
+        if custom_dims and hasattr(custom_dims, 'audio_path') and custom_dims.audio_path:
+             from moviepy import AudioFileClip, CompositeAudioClip, afx
+             if os.path.exists(custom_dims.audio_path):
+                 bg_music = AudioFileClip(custom_dims.audio_path)
+
         for ts in timestamps:
             # Open fresh instance for each clip to avoid handle sharing issues on Windows
             with VideoFileClip(video_path) as video:
@@ -29,12 +36,41 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
                 # Extract subclip
                 subclip = video.subclipped(ts.start_time, end)
                 
+                # Apply background music if available
+                if bg_music:
+                    # Get audio options from custom_dims or defaults
+                    loop = True
+                    music_vol = 0.2
+                    video_vol = 1.0
+                    
+                    if custom_dims:
+                         if hasattr(custom_dims, 'loop_music'): loop = custom_dims.loop_music
+                         if hasattr(custom_dims, 'music_volume'): music_vol = custom_dims.music_volume
+                         if hasattr(custom_dims, 'video_volume'): video_vol = custom_dims.video_volume
+
+                    # Logic to loop or trim music
+                    if loop and bg_music.duration < subclip.duration:
+                        music_clip = afx.audio_loop(bg_music, duration=subclip.duration)
+                    else:
+                        music_clip = bg_music.subclipped(0, min(bg_music.duration, subclip.duration))
+                    
+                    # Set volumes
+                    music_clip = music_clip.with_volume_scaled(music_vol)
+                    
+                    # Mix with original audio
+                    if subclip.audio:
+                         original_audio = subclip.audio.with_volume_scaled(video_vol)
+                         subclip = subclip.with_audio(CompositeAudioClip([original_audio, music_clip]))
+                    else:
+                         subclip = subclip.with_audio(music_clip)
+
                 # Apply formatting
                 if output_format != VideoFormat.CUSTOM:
                     target_ratio = ratios.get(output_format, 16/9)
                     subclip = format_clip(subclip, target_ratio)
                 elif custom_dims:
-                    subclip = subclip.resized(width=custom_dims.width, height=custom_dims.height)
+                    if hasattr(custom_dims, 'width') and hasattr(custom_dims, 'height'):
+                        subclip = subclip.resized(width=custom_dims.width, height=custom_dims.height)
                 
                 # Generate unique filename
                 output_filename = f"clip_{uuid.uuid4().hex[:8]}.mp4"
@@ -55,8 +91,13 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
                 # Explicitly close everything
                 if subclip.audio: subclip.audio.close()
                 subclip.close()
+                if bg_music:
+                    # We don't close bg_music here as it's reused, but we should close the loop/trim versions if possible
+                    # MoviePy v2 handles composition cleanly usually
+                    pass
                 clip_paths.append(output_path)
-            
+        
+        if bg_music: bg_music.close()
         return clip_paths
 
     except Exception as e:

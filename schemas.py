@@ -17,6 +17,10 @@ class Timestamp(BaseModel):
 class Dimensions(BaseModel):
     width: int
     height: int
+    audio_path: Optional[str] = None
+    video_volume: float = 1.0
+    music_volume: float = 0.2
+    loop_music: bool = True
 
 class ClipRequest(BaseModel):
     video_url: Optional[str] = None
