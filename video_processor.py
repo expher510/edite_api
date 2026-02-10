@@ -22,7 +22,8 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
         # Load background music if provided
         bg_music = None
         if custom_dims and hasattr(custom_dims, 'audio_path') and custom_dims.audio_path:
-             from moviepy import AudioFileClip, CompositeAudioClip, afx
+             from moviepy import AudioFileClip, CompositeAudioClip
+             import moviepy.audio.fx as afx
              if os.path.exists(custom_dims.audio_path):
                  bg_music = AudioFileClip(custom_dims.audio_path)
 
@@ -50,7 +51,8 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
 
                     # Logic to loop or trim music
                     if loop and bg_music.duration < subclip.duration:
-                        music_clip = afx.audio_loop(bg_music, duration=subclip.duration)
+                        # NEW MOVIEPY V2 SYNTAX
+                        music_clip = bg_music.with_effects([afx.AudioLoop(duration=subclip.duration)])
                     else:
                         music_clip = bg_music.subclipped(0, min(bg_music.duration, subclip.duration))
                     
@@ -65,7 +67,9 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
                          subclip = subclip.with_audio(music_clip)
 
                 # Apply formatting
-                if output_format != VideoFormat.CUSTOM:
+                if output_format == VideoFormat.ORIGINAL:
+                    pass # Skip resizing, keep original dimensions
+                elif output_format != VideoFormat.CUSTOM:
                     target_ratio = ratios.get(output_format, 16/9)
                     subclip = format_clip(subclip, target_ratio)
                 elif custom_dims:
@@ -85,6 +89,7 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
                     remove_temp=True,
                     fps=24,
                     threads=4,
+                    preset="ultrafast",   # Significant speedup
                     logger=None
                 )
                 
@@ -129,3 +134,15 @@ def format_clip(clip, target_ratio):
         return subclip.resized(width=1080) if subclip.w < 1080 else subclip
         
     return subclip
+
+def safe_remove(path: str, max_retries: int = 3):
+    """Attempt to remove a file with retries for Windows file locking."""
+    import time
+    for i in range(max_retries):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+            return
+        except PermissionError:
+            time.sleep(1) # Wait for handles to clear
+    print(f"Warning: Could not delete {path} after {max_retries} attempts.")

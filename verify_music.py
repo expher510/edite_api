@@ -30,7 +30,7 @@ def test_music_upload():
     }
     
     data = {
-        'format': 'Video (16:9)',
+        'format': 'Original (No Resize)',
         'timestamps': '[{"start_time": 0, "end_time": 5}]',
         'video_volume': 0.5,
         'music_volume': 0.8,

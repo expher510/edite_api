@@ -8,6 +8,7 @@ class VideoFormat(str, Enum):
     SQUARE = "Square (1:1)"
     CINEMA = "Cinema (21:9)"
     FILM = "Film (2.35:1)"
+    ORIGINAL = "Original (No Resize)"
     CUSTOM = "Custom"
 
 class Timestamp(BaseModel):
