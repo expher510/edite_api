@@ -25,7 +25,8 @@ async def process_video(
         ..., 
         alias="timestamps",
         description='JSON list of timestamps. Recommended duration for weak devices: < 60 seconds per clip.'
-    )
+    ),
+    export_audio: bool = Form(False, description="Export separate audio files for each clip (original audio).")
 ):
     temp_path = None
     audio_path = None
@@ -79,19 +80,25 @@ async def process_video(
 
         # Process clips
         try:
-            clip_paths = process_video_clips(temp_path, timestamps, format, custom_dims=dims)
+            clip_paths, audio_clip_paths = process_video_clips(temp_path, timestamps, format, custom_dims=dims, export_audio=export_audio)
         finally:
              pass
         
         safe_remove(temp_path)
         if audio_path: safe_remove(audio_path)
 
-        return {
+        response_data = {
             "message": "Clips processed successfully",
             "format_applied": format,
             "clips": [os.path.basename(p) for p in clip_paths],
             "full_paths": clip_paths
         }
+
+        if export_audio:
+            response_data["audio_clips"] = [os.path.basename(p) if p else None for p in audio_clip_paths]
+            response_data["audio_full_paths"] = audio_clip_paths
+
+        return response_data
 
     except Exception as e:
         if temp_path:

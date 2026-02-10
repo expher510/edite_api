@@ -34,7 +34,8 @@ def test_music_upload():
         'timestamps': '[{"start_time": 0, "end_time": 5}]',
         'video_volume': 0.5,
         'music_volume': 0.8,
-        'loop_music': True
+        'loop_music': True,
+        'export_audio': True
     }
 
     print("\nTesting Background Music Upload...")

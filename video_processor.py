@@ -3,11 +3,13 @@ import uuid
 from moviepy import VideoFileClip, vfx
 from schemas import VideoFormat, Dimensions
 
-def process_video_clips(video_path: str, timestamps, output_format: VideoFormat, custom_dims: Dimensions = None):
+def process_video_clips(video_path: str, timestamps, output_format: VideoFormat, custom_dims: Dimensions = None, export_audio: bool = False):
     """
     Processes a video file into multiple clips based on timestamps and format.
+    If export_audio is True, also saves the original audio track of each clip.
     """
     clip_paths = []
+    audio_paths = []
     
     # Target aspect ratios
     ratios = {
@@ -36,6 +38,24 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
                 
                 # Extract subclip
                 subclip = video.subclipped(ts.start_time, end)
+
+                # Generate unique ID for this clip operation
+                clip_id = uuid.uuid4().hex[:8]
+                output_filename = f"clip_{clip_id}.mp4"
+                output_path = os.path.join(os.path.dirname(video_path), output_filename)
+
+                # 1. Export Clean Audio (Transcript Source) if requested
+                # We do this BEFORE any mixing or effects
+                if export_audio and subclip.audio:
+                    audio_filename = f"clip_{clip_id}.mp3"
+                    audio_output_path = os.path.join(os.path.dirname(video_path), audio_filename)
+                    subclip.audio.write_audiofile(
+                        audio_output_path,
+                        logger=None
+                    )
+                    audio_paths.append(audio_output_path)
+                elif export_audio:
+                    audio_paths.append(None) # Keep index sync if no audio
                 
                 # Apply background music if available
                 if bg_music:
@@ -76,16 +96,12 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
                     if hasattr(custom_dims, 'width') and hasattr(custom_dims, 'height'):
                         subclip = subclip.resized(width=custom_dims.width, height=custom_dims.height)
                 
-                # Generate unique filename
-                output_filename = f"clip_{uuid.uuid4().hex[:8]}.mp4"
-                output_path = os.path.join(os.path.dirname(video_path), output_filename)
-                
                 # Write file
                 subclip.write_videofile(
                     output_path, 
                     codec="libx264", 
                     audio_codec="aac",
-                    temp_audiofile=f"temp-audio-{uuid.uuid4().hex[:8]}.m4a",
+                    temp_audiofile=f"temp-audio-{clip_id}.m4a",
                     remove_temp=True,
                     fps=24,
                     threads=4,
@@ -103,7 +119,7 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
                 clip_paths.append(output_path)
         
         if bg_music: bg_music.close()
-        return clip_paths
+        return clip_paths, audio_paths
 
     except Exception as e:
         print(f"Error processing video: {str(e)}")
