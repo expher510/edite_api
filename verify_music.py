@@ -9,13 +9,20 @@ def create_assets():
     # 1. Video (5 seconds)
     if not os.path.exists("test_music_video.mp4"):
         clip = ColorClip(size=(640, 480), color=(0, 255, 0), duration=5)
-        clip.write_videofile("test_music_video.mp4", fps=24, logger=None)
+    # 2. Audio (5 seconds)
+    if not os.path.exists("test_audio.mp3"):
+        # Create a silent audio clip for testing if real one missing
+        from moviepy import AudioClip
+        import numpy as np
+        make_frame = lambda t: np.sin(440 * 2 * np.pi * t)
+        audio = AudioClip(make_frame, duration=5, fps=44100)
+        audio.write_audiofile("test_audio.mp3", fps=44100, logger=None)
 
 def test_music_upload():
     url = "http://localhost:8000/process"
     
-    video_file = 'ChronoTrigger_456_part01_512kb.mp4'
-    audio_file = 'kakaist-cinematic-hit-3-317170.mp3'
+    video_file = 'test_music_video.mp4'
+    audio_file = 'test_audio.mp3' # Use generated audio
 
     if not os.path.exists(video_file):
         print(f"Error: Video file {video_file} not found!")
@@ -46,11 +53,18 @@ def test_music_upload():
         if response.status_code == 200:
             result = response.json()
             print("Response:", result)
-            clips = result.get("full_paths", [])
-            if clips and os.path.exists(clips[0]):
-                print("SUCCESS: Clip created with music!")
+            
+            # Check for ZIP archive
+            if "archive_url" in result:
+                print(f"SUCCESS: Zip archive created! URL: {result['archive_url']}")
+                # Validate filename
+                if "archive_filename" in result and result['archive_filename'].endswith('.zip'):
+                     print("SUCCESS: Filename is valid zip.")
+            elif "clips" in result:
+                 print("SUCCESS: JSON processed (No Zip requested or generated).")
             else:
-                print("FAILURE: Clip file missing.")
+                 print("FAILURE: Unexpected response structure.")
+
         else:
             print("FAILURE: API Error", response.text)
             

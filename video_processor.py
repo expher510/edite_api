@@ -32,9 +32,14 @@ def process_video_clips(video_path: str, timestamps, output_format: VideoFormat,
         for ts in timestamps:
             # Open fresh instance for each clip to avoid handle sharing issues on Windows
             with VideoFileClip(video_path) as video:
+                print(f"DEBUG: Processing clip. Video Duration: {video.duration}, Request: Start={ts.start_time}, End={ts.end_time}")
+                
                 # Basic validation
-                if ts.start_time >= video.duration: continue
+                if ts.start_time >= video.duration: 
+                    print(f"DEBUG: Skipping clip. Start time {ts.start_time} is beyond video duration {video.duration}.")
+                    continue
                 end = min(ts.end_time, video.duration)
+                print(f"DEBUG: Extracting subclip from {ts.start_time} to {end}")
                 
                 # Extract subclip
                 subclip = video.subclipped(ts.start_time, end)
@@ -162,3 +167,23 @@ def safe_remove(path: str, max_retries: int = 3):
         except PermissionError:
             time.sleep(1) # Wait for handles to clear
     print(f"Warning: Could not delete {path} after {max_retries} attempts.")
+
+def create_zip_archive(file_paths: list, output_filename: str):
+    """
+    Creates a ZIP archive containing the specified files.
+    """
+    import zipfile
+    
+    # Filter out None values
+    file_paths = [f for f in file_paths if f and os.path.exists(f)]
+    
+    if not file_paths:
+        return None
+
+    zip_path = os.path.join(os.path.dirname(file_paths[0]), output_filename)
+    
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for file in file_paths:
+            zipf.write(file, os.path.basename(file))
+                
+    return zip_path

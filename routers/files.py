@@ -9,10 +9,17 @@ UPLOAD_DIR = "temp_videos"
 @router.get("/get-clip/{filename}", summary="Download/Play Video Clip", tags=["File Retrieval"])
 async def get_clip(filename: str):
     """
-    Retrieves a processed video clip by its filename.
-    Returns the file as a video/mp4 stream.
+    Retrieves a processed video clip, audio file, or zip by its filename.
     """
     path = os.path.join(UPLOAD_DIR, filename)
     if os.path.exists(path):
-        return FileResponse(path, media_type="video/mp4", filename=filename)
-    raise HTTPException(status_code=404, detail="Clip not found")
+        media_type = "application/octet-stream"
+        if filename.endswith(".mp4"):
+            media_type = "video/mp4"
+        elif filename.endswith(".mp3"):
+            media_type = "audio/mpeg"
+        elif filename.endswith(".zip"):
+            media_type = "application/zip"
+            
+        return FileResponse(path, media_type=media_type, filename=filename)
+    raise HTTPException(status_code=404, detail="File not found")
